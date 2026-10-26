@@ -51,12 +51,22 @@ def bongkar_gambar_rgb(img):
     img = img.convert('RGB')
     return [(r << 16) | (g << 8) | b for r, g, b in img.getdata()]
 
-# Baca gambar RGBA (dipakai saat DEKRIPSI)
+# Baca gambar sandi (dipakai saat DEKRIPSI)
 def bongkar_gambar(img):
-    img = img.convert('RGBA')
+    has_alpha = img.mode in ('RGBA', 'LA')
+    img_rgba = img.convert('RGBA')
     deret = []
-    for r, g, b, a in img.getdata():
-        deret.append((a << 24) | (r << 16) | (g << 8) | b)
+    for r, g, b, a in img_rgba.getdata():
+        if has_alpha:
+            if a in (254, 255):
+                bit24 = 1 if a == 255 else 0
+            elif a in (0, 1):
+                bit24 = a
+            else:
+                bit24 = 0
+        else:
+            bit24 = 0
+        deret.append((bit24 << 24) | (r << 16) | (g << 8) | b)
     return deret
 
 def generate_logistic_map(x_awal, r, ukuran):
@@ -105,13 +115,20 @@ def permutasi_balik(deret_acak, deret_chaotic):
     return asli
 
 def susun_gambar(deret, lebar, tinggi, simpan_alpha=False):
-    img = Image.new('RGBA', (lebar, tinggi))
-    pixels = []
-    for argb in deret:
-        a = (argb >> 24) & 255
-        r = (argb >> 16) & 255
-        g = (argb >> 8) & 255
-        b = argb & 255
-        pixels.append((r, g, b, a))
-    img.putdata(pixels)
-    return img if simpan_alpha else img.convert('RGB')
+    if not simpan_alpha:
+        img = Image.new('RGB', (lebar, tinggi))
+        pixels = [((val >> 16) & 255, (val >> 8) & 255, val & 255) for val in deret]
+        img.putdata(pixels)
+        return img
+    else:
+        img = Image.new('RGBA', (lebar, tinggi))
+        pixels = []
+        for val in deret:
+            bit24 = (val >> 24) & 1
+            a = 254 + bit24  # 254 jika 0, 255 jika 1 -> gambar tetap opaque dan tampak jelas
+            r = (val >> 16) & 255
+            g = (val >> 8) & 255
+            b = val & 255
+            pixels.append((r, g, b, a))
+        img.putdata(pixels)
+        return img

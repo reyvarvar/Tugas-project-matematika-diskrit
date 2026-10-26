@@ -42,7 +42,7 @@ def enkripsi():
     deret_chaotic = logic.generate_logistic_map(x_val, r_val, len(deret_piksel))
     deret_acak = logic.skibiditoilet(deret_piksel, deret_chaotic)
     deret_sandi = logic.proses_difusi(deret_acak, x_val, r_val, m1, m2, m3)
-    img_hasil = logic.susun_gambar(deret_sandi, lebar, tinggi, simpan_alpha=False)
+    img_hasil = logic.susun_gambar(deret_sandi, lebar, tinggi, simpan_alpha=True)
     return kirim_png(img_hasil)
 
 @app.route('/api/dekripsi', methods=['POST'])
@@ -63,7 +63,7 @@ def dekripsi():
     deret_chaotic = logic.generate_logistic_map(x_val, r_val, len(deret_sandi))
     deret_acak = logic.proses_difusi_balik(deret_sandi, x_val, r_val, m1, m2, m3)
     deret_asli = logic.permutasi_balik(deret_acak, deret_chaotic)
-    img_hasil = logic.susun_gambar(deret_asli, lebar, tinggi)
+    img_hasil = logic.susun_gambar(deret_asli, lebar, tinggi, simpan_alpha=False)
     return kirim_png(img_hasil)
 
 if __name__ == '__main__':
