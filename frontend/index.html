@@ -74,6 +74,24 @@
         #btnDekripsi { background-color: #2d2d2d; color: #ffcc00; border: 2px solid #ffcc00; }
         #btnDekripsi:hover { background-color: #ffcc00; color: #121212; }
 
+        #btnDownload {
+            display: none;
+            background-color: #ffcc00;
+            color: #121212;
+            border: none;
+            padding: 12px 25px;
+            font-size: 14px;
+            font-weight: 900;
+            border-radius: 8px;
+            cursor: pointer;
+            text-transform: uppercase;
+            transition: 0.2s;
+            box-shadow: 0 4px 15px rgba(255, 204, 0, 0.3);
+        }
+        #btnDownload:hover {
+            background-color: #e6b800;
+        }
+
         .area-preview { display: flex; justify-content: space-between; gap: 20px; margin-top: 30px; }
         .kotak-gambar { flex: 1; height: 180px; background-color: #2d2d2d; border: 2px dashed #ffcc00; border-radius: 10px; display: flex; justify-content: center; align-items: center; color: #ffcc00; font-size: 14px; font-weight: bold; overflow: hidden; }
     </style>
@@ -112,9 +130,17 @@
             <div class="kotak-gambar" id="previewAsli"><span>[ Gambar Input ]</span></div>
             <div class="kotak-gambar" id="previewHasil"><span>[ Gambar Hasil ]</span></div>
         </div>
+
+        <!-- TOMBOL DOWNLOAD HASIL -->
+        <div style="margin-top: 20px; display: flex; justify-content: center;">
+            <button id="btnDownload">📥 Download Hasil</button>
+        </div>
     </div>
 
     <script>
+        let hasilBlobUrl = null;
+        let namaFileDownload = "hasil.png";
+
         function kirimData(endpoint) {
             let fileInput = document.getElementById('inputGambar').files[0]; // Memastikan mengambil file pertama
             if (!fileInput) { alert("Pilih gambar terlebih dahulu!"); return; }
@@ -128,6 +154,7 @@
             formData.append('r', document.getElementById('r').value);
 
             document.getElementById('previewHasil').innerHTML = "<span>Sedang diproses...</span>";
+            document.getElementById('btnDownload').style.display = "none";
 
             fetch('http://127.0.0.1:8080/api/' + endpoint, { method: 'POST', body: formData })
             .then(async res => {
@@ -138,13 +165,23 @@
                 return res.blob(); // Menangkap file gambar asli dari Flask
             })
             .then(blob => {
-                let url = URL.createObjectURL(blob);
+                if (hasilBlobUrl) {
+                    URL.revokeObjectURL(hasilBlobUrl);
+                }
+                hasilBlobUrl = URL.createObjectURL(blob);
+                namaFileDownload = endpoint === 'enkripsi' ? 'hasil_enkripsi.png' : 'hasil_dekripsi.png';
+
                 // KUNCI PERBAIKAN: Memaksa gambar tampil penuh di dalam kotak preview tanpa terpotong atau ngumpet
-                document.getElementById('previewHasil').innerHTML = `<img src="${url}" style="width: 100%; height: 100%; object-fit: contain; display: block;">`;
+                document.getElementById('previewHasil').innerHTML = `<img src="${hasilBlobUrl}" style="width: 100%; height: 100%; object-fit: contain; display: block;">`;
+
+                let btnDownload = document.getElementById('btnDownload');
+                btnDownload.innerText = endpoint === 'enkripsi' ? '📥 Download Gambar Sandi' : '📥 Download Gambar Asli';
+                btnDownload.style.display = 'inline-block';
             })
             .catch(err => {
                 alert("Error: " + err.message);
                 document.getElementById('previewHasil').innerHTML = "<span>Gagal Proses</span>";
+                document.getElementById('btnDownload').style.display = "none";
             });
         }
 
@@ -153,11 +190,22 @@
             if (file) {
                 let url = URL.createObjectURL(file);
                 document.getElementById('previewAsli').innerHTML = `<img src="${url}" style="width: 100%; height: 100%; object-fit: contain; display: block;">`;
+                document.getElementById('btnDownload').style.display = 'none';
             }
         });
 
         document.getElementById('btnEnkripsi').addEventListener('click', () => kirimData('enkripsi'));
         document.getElementById('btnDekripsi').addEventListener('click', () => kirimData('dekripsi'));
+
+        document.getElementById('btnDownload').addEventListener('click', function() {
+            if (!hasilBlobUrl) return;
+            let a = document.createElement('a');
+            a.href = hasilBlobUrl;
+            a.download = namaFileDownload;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        });
     </script>
 
 </body>
