@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aplikasi Kriptografi Citra</title>
+    <style>
+        /* ========================================================
+           🎨 BAGIAN WARNA & LATAR (Bisa Kamu Ganti Sendiri Nanti)
+           ======================================================== */
+        body {
+            background-color: #121212; /* Hitam gelap ala konsol hacker */
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .kotak-aplikasi {
+            background-color: #1e1e1e; /* Abu-abu sangat gelap agar input kelihatan */
+            padding: 40px;
+            border-radius: 16px;
+            /* Efek garis polisi diagonal di pinggiran kotak */
+            border: 5px solid #ffcc00; 
+            box-shadow: 0 0 25px rgba(255, 204, 0, 0.2); 
+            width: 100%;
+            max-width: 600px;
+            text-align: center;
+        }
+
+        /* Tulisan Judul Utama */
+        h1 {
+            color: #ffcc00; /* Kuning Garis Polisi */
+            margin-bottom: 5px;
+            font-size: 32px;
+            font-weight: 800;
+            text-transform: uppercase; /* Membuat huruf jadi kapital semua */
+            letter-spacing: 1px;
+        }
+
+        /* Tulisan Sub-Judul */
+        p {
+            color: #ffffff !important; /* Teks putih agar kontras */
+        }
+
+        h3 {
+            color: #ffcc00; /* Sub-judul parameter warna kuning */
+            font-size: 15px;
+            margin-top: 25px;
+            margin-bottom: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        /* Gaya Kotak Input Angka */
+        input[type="number"] {
+            width: 80px;
+            padding: 10px;
+            margin: 5px;
+            border: 2px solid #ffcc00; /* Garis tepi kotak input jadi kuning */
+            border-radius: 8px;
+            background-color: #2d2d2d; /* Latar input gelap */
+            color: #ffffff; /* Angka warna putih */
+            text-align: center;
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        /* Gaya Tempat Upload File */
+        .upload-wrapper {
+            margin: 20px 0;
+        }
+
+        input[type="file"] {
+            padding: 10px;
+            border: 2px dashed #ffcc00;
+            border-radius: 8px;
+            background-color: #2d2d2d;
+            color: #ffffff;
+            cursor: pointer;
+        }
+
+        /* 🚧 TOMBOL UTAMA (KUNING TULISAN HITAM) 🚧 */
+        button {
+            background-color: #ffcc00; /* Kuning menyala */
+            color: #121212; /* Tulisan hitam pekat */
+            border: none;
+            padding: 14px 35px;
+            font-size: 16px;
+            font-weight: 900; /* Tulisan sangat tebal */
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 25px;
+            text-transform: uppercase;
+            transition: 0.2s;
+            box-shadow: 0 4px 15px rgba(255, 204, 0, 0.3);
+        }
+
+        button:hover {
+            background-color: #e6b800; /* Kuningnya agak redup sedikit saat disentuh mouse */
+            box-shadow: 0 4px 20px rgba(255, 204, 0, 0.5);
+        }
+
+        /* Kotak Pratinjau Gambar */
+        .area-preview {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .kotak-gambar {
+            flex: 1;
+            height: 180px;
+            background-color: #2d2d2d;
+            border: 2px dashed #ffcc00;
+            border-radius: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #ffcc00;
+            font-size: 14px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Kotak Utama Aplikasi -->
+    <div class="kotak-aplikasi">
+        
+        <!-- Judul Aplikasi -->
+        <h1>SecureImage Pro</h1>
+        <p style="color: #888; margin-top: 0;">Enkripsi Citra: Logistic Map & CRT</p>
+        
+        <!-- 1. Tempat Upload Gambar -->
+        <div class="upload-wrapper">
+            <input type="file" id="inputGambar" accept="image/*">
+        </div>
+
+        <!-- 2. Parameter dari Kode Java Reyhan (m1, m2, m3) -->
+        <h3> Angka Relatif Prima (CRT)</h3>
+        <div style="display: flex; justify-content: center;">
+            <input type="number" id="m1" value="7" title="Nilai m1">
+            <input type="number" id="m2" value="8" title="Nilai m2">
+            <input type="number" id="m3" value="9" title="Nilai m3">
+        </div>
+
+        <!-- 3. Parameter dari Kode Java Reyhan (x0 dan r) -->
+        <h3> Parameter Chaotic (Logistic Map)</h3>
+        <div style="display: flex; justify-content: center;">
+            <input type="number" step="0.01" id="x" value="0.35" title="Nilai Awal (x)" style="width: 100px;">
+            <input type="number" step="0.01" id="r" value="3.99" title="Nilai Kontrol (r)" style="width: 100px;">
+        </div>
+
+        <!-- 4. Tombol Utama Aksi -->
+        <div>
+            <button id="btnProses"> Jalankan Enkripsi</button>
+        </div>
+
+        <!-- 5. Kotak Hasil Pratinjau Gambar -->
+        <div class="area-preview">
+            <div class="kotak-gambar">
+                <span>[ Gambar Asli ]</span>
+            </div>
+            <div class="kotak-gambar">
+                <span>[ Gambar Hasil ]</span>
+            </div>
+        </div>
+
+    </div>
+
+</body>
+</html>
