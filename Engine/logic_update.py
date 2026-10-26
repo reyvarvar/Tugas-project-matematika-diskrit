@@ -53,11 +53,8 @@ def bongkar_gambar_rgb(img):
 
 # Baca gambar RGBA (dipakai saat DEKRIPSI)
 def bongkar_gambar(img):
-    img = img.convert('RGBA')
-    deret = []
-    for r, g, b, a in img.getdata():
-        deret.append((a << 24) | (r << 16) | (g << 8) | b)
-    return deret
+    img = img.convert('RGB')
+    return [(r << 16) | (g << 8) | b for r, g, b in img.getdata()]
 
 def generate_logistic_map(x_awal, r, ukuran):
     deret = []
