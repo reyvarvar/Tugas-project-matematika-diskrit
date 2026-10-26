@@ -2,11 +2,11 @@
 
 Aplikasi Kriptografi Citra Digital berbasis Web yang menggabungkan algoritma **Chaos Logistic Map** (Permutasi / *Confusion*) dan **Chinese Remainder Theorem / Teorema Sisa Cina (CRT)** (Difusi / *Diffusion*).
 
-Proyek ini dikembangkan sebagai Tugas Proyek Mata Kuliah **Matematika Diskrit**, Program Studi Informatika, Universitas Sebelas Maret (UNS).
+Proyek ini dikembangkan sebagai Tugas Proyek Mata Kuliah **Matematika Diskrit II**, Program Studi Informatika, Universitas Sebelas Maret (UNS).
 
 ---
 
-## 👥 Anggota Tim Pengembang
+## 👥 Anggota Kelompok
 
 | NIM | Nama Mahasiswa |
 | :--- | :--- |
@@ -91,7 +91,7 @@ Metode ini memastikan citra sandi **tidak transparan** (tetap tampil padat sebag
 
 ## 🚀 Cara Menjalankan Aplikasi
 
-### 1. Prasyarat
+### 1. Syarat Utama
 Pastikan Python 3.8+ telah terinstal pada sistem Anda. Pasang pustaka yang diperlukan:
 ```bash
 pip install flask flask-cors pillow
