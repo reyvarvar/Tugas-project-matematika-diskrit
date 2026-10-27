@@ -1,3 +1,4 @@
+import time
 from flask import Flask, request, send_file
 from flask_cors import CORS
 import io
@@ -5,7 +6,7 @@ from PIL import Image
 import logic_update as logic
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, expose_headers=['X-Execution-Time'])
 
 def ambil_parameter():
     m1 = int(request.form.get('m1', 256))
@@ -18,11 +19,14 @@ def ambil_parameter():
 def modulus_valid(m1, m2, m3):
     return logic.cek_relatif_prima(m1, m2, m3) and m1 * m2 * m3 >= 2**24
 
-def kirim_png(img):
+def kirim_png(img, waktu_komputasi=None):
     buf = io.BytesIO()
     img.save(buf, format='PNG')
     buf.seek(0)
-    return send_file(buf, mimetype='image/png')
+    response = send_file(buf, mimetype='image/png')
+    if waktu_komputasi is not None:
+        response.headers['X-Execution-Time'] = f"{waktu_komputasi:.4f}"
+    return response
 
 @app.route('/api/enkripsi', methods=['POST'])
 def enkripsi():
@@ -38,12 +42,19 @@ def enkripsi():
     img = Image.open(request.files['gambar'].stream)
     lebar, tinggi = img.size
 
+    start_time = time.time()
+
     deret_piksel = logic.bongkar_gambar_rgb(img)
     deret_chaotic = logic.generate_logistic_map(x_val, r_val, len(deret_piksel))
     deret_acak = logic.acak_indeks(deret_piksel, deret_chaotic)
     deret_sandi = logic.proses_difusi(deret_acak, x_val, r_val, m1, m2, m3)
     img_hasil = logic.susun_gambar(deret_sandi, lebar, tinggi, simpan_alpha=True)
-    return kirim_png(img_hasil)
+
+    end_time = time.time()
+    waktu_komputasi = end_time - start_time
+    print(f"Waktu komputasi enkripsi: {waktu_komputasi:.4f} detik")
+
+    return kirim_png(img_hasil, waktu_komputasi)
 
 @app.route('/api/dekripsi', methods=['POST'])
 def dekripsi():
@@ -59,12 +70,19 @@ def dekripsi():
     img = Image.open(request.files['gambar'].stream)
     lebar, tinggi = img.size
 
+    start_time = time.time()
+
     deret_sandi = logic.bongkar_gambar(img)
     deret_chaotic = logic.generate_logistic_map(x_val, r_val, len(deret_sandi))
     deret_acak = logic.proses_difusi_balik(deret_sandi, x_val, r_val, m1, m2, m3)
     deret_asli = logic.permutasi_balik(deret_acak, deret_chaotic)
     img_hasil = logic.susun_gambar(deret_asli, lebar, tinggi, simpan_alpha=False)
-    return kirim_png(img_hasil)
+
+    end_time = time.time()
+    waktu_komputasi = end_time - start_time
+    print(f"Waktu komputasi dekripsi: {waktu_komputasi:.4f} detik")
+
+    return kirim_png(img_hasil, waktu_komputasi)
 
 if __name__ == '__main__':
     app.run(port=8080, debug=True)
