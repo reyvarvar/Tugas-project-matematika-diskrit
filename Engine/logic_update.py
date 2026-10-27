@@ -77,7 +77,7 @@ def generate_logistic_map(x_awal, r, ukuran):
         x = r * x * (1 - x)
     return deret
 
-def skibiditoilet(deret_piksel_asli, deret_chaotic):
+def acak_indeks(deret_piksel_asli, deret_chaotic):
     indeks = list(range(len(deret_piksel_asli)))
     indeks.sort(key=lambda i: deret_chaotic[i])
     return [deret_piksel_asli[i] for i in indeks]

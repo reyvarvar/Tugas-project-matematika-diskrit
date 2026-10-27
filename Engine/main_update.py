@@ -40,7 +40,7 @@ def enkripsi():
 
     deret_piksel = logic.bongkar_gambar_rgb(img)
     deret_chaotic = logic.generate_logistic_map(x_val, r_val, len(deret_piksel))
-    deret_acak = logic.skibiditoilet(deret_piksel, deret_chaotic)
+    deret_acak = logic.acak_indeks(deret_piksel, deret_chaotic)
     deret_sandi = logic.proses_difusi(deret_acak, x_val, r_val, m1, m2, m3)
     img_hasil = logic.susun_gambar(deret_sandi, lebar, tinggi, simpan_alpha=True)
     return kirim_png(img_hasil)
