@@ -91,6 +91,9 @@ Metode ini memastikan citra sandi **tidak transparan** (tetap tampil padat sebag
 
 ## 🚀 Cara Menjalankan Aplikasi
 
+> 🌐 **Live Web Application (Vercel):**  
+> [https://aplikasi-kriptografi-citra.vercel.app/](https://aplikasi-kriptografi-citra.vercel.app/)
+
 ### 1. Syarat Utama
 Pastikan Python 3.8+ telah terinstal pada sistem Anda. Pasang pustaka yang diperlukan:
 ```bash
