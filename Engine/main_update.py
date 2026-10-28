@@ -1,88 +1,160 @@
-import time
-from flask import Flask, request, send_file
-from flask_cors import CORS
-import io
 from PIL import Image
-import logic_update as logic
 
-app = Flask(__name__)
-CORS(app, expose_headers=['X-Execution-Time'])
 
-def ambil_parameter():
-    m1 = int(request.form.get('m1', 256))
-    m2 = int(request.form.get('m2', 257))
-    m3 = int(request.form.get('m3', 259))
-    x_val = float(request.form.get('x', 0.35))
-    r_val = float(request.form.get('r', 3.99))
-    return m1, m2, m3, x_val, r_val
+# Cari FPB pakai algoritma Euclidean
+def hitung_fpb(a, b):
+    if b == 0:
+        return a
+    return hitung_fpb(b, a % b)
 
-def modulus_valid(m1, m2, m3):
-    return logic.cek_relatif_prima(m1, m2, m3) and m1 * m2 * m3 >= 2**24
 
-def kirim_png(img, waktu_komputasi=None):
-    buf = io.BytesIO()
-    img.save(buf, format='PNG')
-    buf.seek(0)
-    response = send_file(buf, mimetype='image/png')
-    if waktu_komputasi is not None:
-        response.headers['X-Execution-Time'] = f"{waktu_komputasi:.4f}"
-    return response
+# Pastikan m1, m2, m3 saling koprima (syarat CRT)
+def cek_relatif_prima(m1, m2, m3):
+    return (
+        hitung_fpb(m1, m2) == 1 and hitung_fpb(m1, m3) == 1 and hitung_fpb(m2, m3) == 1
+    )
 
-@app.route('/api/enkripsi', methods=['POST'])
-def enkripsi():
-    if 'gambar' not in request.files:
-        return "Gambarnya mana", 400
-    try:
-        m1, m2, m3, x_val, r_val = ambil_parameter()
-    except ValueError:
-        return "Parameter harus berupa angka", 400
-    if not modulus_valid(m1, m2, m3):
-        return "Modulus harus saling prima dan m1*m2*m3 >= 2^24", 400
 
-    img = Image.open(request.files['gambar'].stream)
-    lebar, tinggi = img.size
+# Cari invers modulo
+def invers_modulo(a, m):
+    m0 = m
+    y = 0
+    x = 1
+    if m == 1:
+        return 0
+    while a > 1:
+        q = a // m
+        t = m
+        m = a % m
+        a = t
+        t = y
+        y = x - q * y
+        x = t
+    if x < 0:
+        x = x + m0
+    return x
 
-    start_time = time.time()
 
-    deret_piksel = logic.bongkar_gambar_rgb(img)
-    deret_chaotic = logic.generate_logistic_map(x_val, r_val, len(deret_piksel))
-    deret_acak = logic.acak_indeks(deret_piksel, deret_chaotic)
-    deret_sandi = logic.proses_difusi(deret_acak, x_val, r_val, m1, m2, m3)
-    img_hasil = logic.susun_gambar(deret_sandi, lebar, tinggi, simpan_alpha=True)
+# Rumus utama Chinese Remainder Theorem (CRT)
+def china(m1, m2, m3, a1, a2, a3):
+    M = m1 * m2 * m3
+    M1 = M // m1
+    M2 = M // m2
+    M3 = M // m3
+    y1 = invers_modulo(M1, m1)
+    y2 = invers_modulo(M2, m2)
+    y3 = invers_modulo(M3, m3)
+    return (a1 * M1 * y1 + a2 * M2 * y2 + a3 * M3 * y3) % M
 
-    end_time = time.time()
-    waktu_komputasi = end_time - start_time
-    print(f"Waktu komputasi enkripsi: {waktu_komputasi:.4f} detik")
 
-    return kirim_png(img_hasil, waktu_komputasi)
+# Bikin deret angka acak chaotic sepanjang jumlah piksel
+def generate_logistic_map(x_awal, r, ukuran):
+    deret = []
+    x = x_awal
+    for _ in range(ukuran):
+        deret.append(x)
+        x = r * x * (1 - x)
+    return deret
 
-@app.route('/api/dekripsi', methods=['POST'])
-def dekripsi():
-    if 'gambar' not in request.files:
-        return "Gambarnya mana", 400
-    try:
-        m1, m2, m3, x_val, r_val = ambil_parameter()
-    except ValueError:
-        return "Parameter harus berupa angka", 400
-    if not modulus_valid(m1, m2, m3):
-        return "Modulus harus saling prima dan m1*m2*m3 >= 2^24", 400
 
-    img = Image.open(request.files['gambar'].stream)
-    lebar, tinggi = img.size
+# Bikin 3 kunci acak dari logistic map buat masing-masing modulus
+def logicmap(x, r, m1, m2, m3):
+    k = [0, 0, 0]
+    x = r * x * (1 - x)
+    k[0] = int(x * 1000000) % m1
+    x = r * x * (1 - x)
+    k[1] = int(x * 1000000) % m2
+    x = r * x * (1 - x)
+    k[2] = int(x * 1000000) % m3
+    return k
 
-    start_time = time.time()
 
-    deret_sandi = logic.bongkar_gambar(img)
-    deret_chaotic = logic.generate_logistic_map(x_val, r_val, len(deret_sandi))
-    deret_acak = logic.proses_difusi_balik(deret_sandi, x_val, r_val, m1, m2, m3)
-    deret_asli = logic.permutasi_balik(deret_acak, deret_chaotic)
-    img_hasil = logic.susun_gambar(deret_asli, lebar, tinggi, simpan_alpha=False)
+# Acak urutan posisi piksel berdasarkan deret chaotic (saat enkripsi)
+def acak_indeks(deret_piksel_asli, deret_chaotic):
+    indeks = list(range(len(deret_piksel_asli)))
+    indeks.sort(key=lambda i: deret_chaotic[i])
+    return [deret_piksel_asli[i] for i in indeks]
 
-    end_time = time.time()
-    waktu_komputasi = end_time - start_time
-    print(f"Waktu komputasi dekripsi: {waktu_komputasi:.4f} detik")
 
-    return kirim_png(img_hasil, waktu_komputasi)
+# Kembalikan posisi piksel ke urutan semula (saat dekripsi)
+def permutasi_balik(deret_acak, deret_chaotic):
+    indeks = list(range(len(deret_acak)))
+    indeks.sort(key=lambda i: deret_chaotic[i])
+    asli = [0] * len(deret_acak)
+    for posisi, i in enumerate(indeks):
+        asli[i] = deret_acak[posisi]
+    return asli
 
-if __name__ == '__main__':
-    app.run(port=8080, debug=True)
+
+# Ubah nilai warna piksel pakai kunci chaotic dan CRT (saat enkripsi)
+def proses_difusi(deret_piksel_acak, x_awal, r, m1, m2, m3):
+    hasil = []
+    x = x_awal
+    for warna_asli in deret_piksel_acak:
+        kunci = logicmap(x, r, m1, m2, m3)
+        a1 = (warna_asli + kunci[0]) % m1
+        a2 = (warna_asli + kunci[1]) % m2
+        a3 = (warna_asli + kunci[2]) % m3
+        hasil.append(china(m1, m2, m3, a1, a2, a3))
+        x = r * x * (1 - x)
+    return hasil
+
+
+# Kembalikan nilai warna piksel dari nilai sandi CRT (saat dekripsi)
+def proses_difusi_balik(deret_sandi, x_awal, r, m1, m2, m3):
+    hasil = []
+    x = x_awal
+    for c in deret_sandi:
+        kunci = logicmap(x, r, m1, m2, m3)
+        b1 = (c % m1 - kunci[0]) % m1
+        b2 = (c % m2 - kunci[1]) % m2
+        b3 = (c % m3 - kunci[2]) % m3
+        hasil.append(china(m1, m2, m3, b1, b2, b3))
+        x = r * x * (1 - x)
+    return hasil
+
+
+# Baca gambar RGB biasa dan gabung jadi integer 24-bit (dipakai saat enkripsi)
+def bongkar_gambar_rgb(img):
+    img = img.convert("RGB")
+    return [(r << 16) | (g << 8) | b for r, g, b in img.getdata()]
+
+
+# Baca gambar sandi RGBA dan ambil bit ke-24 dari alpha (dipakai saat dekripsi)
+def bongkar_gambar(img):
+    has_alpha = img.mode in ("RGBA", "LA")
+    img_rgba = img.convert("RGBA")
+    deret = []
+    for r, g, b, a in img_rgba.getdata():
+        if has_alpha:
+            if a in (254, 255):
+                bit24 = 1 if a == 255 else 0
+            elif a in (0, 1):
+                bit24 = a
+            else:
+                bit24 = 0
+        else:
+            bit24 = 0
+        deret.append((bit24 << 24) | (r << 16) | (g << 8) | b)
+    return deret
+
+
+# Ubah deret angka kembali jadi objek gambar RGB atau RGBA
+def susun_gambar(deret, lebar, tinggi, simpan_alpha=False):
+    if not simpan_alpha:
+        img = Image.new("RGB", (lebar, tinggi))
+        pixels = [((val >> 16) & 255, (val >> 8) & 255, val & 255) for val in deret]
+        img.putdata(pixels)
+        return img
+    else:
+        img = Image.new("RGBA", (lebar, tinggi))
+        pixels = []
+        for val in deret:
+            bit24 = (val >> 24) & 1
+            a = 254 + bit24  # 254 jika 0, 255 jika 1 supaya gambar tetap pekat
+            r = (val >> 16) & 255
+            g = (val >> 8) & 255
+            b = val & 255
+            pixels.append((r, g, b, a))
+        img.putdata(pixels)
+        return img
